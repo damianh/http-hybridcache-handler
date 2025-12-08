@@ -1,0 +1,408 @@
+// Copyright (c) Damian Hickey. All rights reserved.
+// See LICENSE in the project root for license information.
+
+using System.Net;
+using System.Net.Http.Headers;
+
+namespace DamianH.HttpHybridCacheHandler;
+
+public class ValidationTests
+{
+    private readonly Ct _ct = TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task Cached_response_with_ETag_triggers_If_None_Match()
+    {
+        var requestCount = 0;
+        HttpRequestMessage? lastRequest = null;
+        var mockHandler = new MockHttpMessageHandler(req =>
+        {
+            requestCount++;
+            if (requestCount == 1)
+            {
+                // First request - return response with ETag
+                var response = new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("original content")
+                };
+                response.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromSeconds(1) };
+                response.Headers.ETag = new EntityTagHeaderValue("\"123abc\"");
+                return Task.FromResult(response);
+            }
+
+            // Second request - capture for assertion
+            lastRequest = req;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotModified));
+        });
+
+        var fixture = new HttpHybridCacheHandlerFixture(mockHandler);
+        var client = fixture.CreateClient();
+
+        // First request - populate cache
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        // Make response stale
+        fixture.AdvanceTime(TimeSpan.FromSeconds(2));
+
+        // Second request - should trigger validation with If-None-Match
+        _ = await client.GetAsync("https://example.com/resource", _ct);
+
+        requestCount.ShouldBe(2);
+        lastRequest.ShouldNotBeNull();
+        lastRequest.Headers.IfNoneMatch.ShouldContain(etag => etag.Tag == "\"123abc\"");
+    }
+
+    [Fact]
+    public async Task Response_304_updates_cache_metadata()
+    {
+        var requestCount = 0;
+        var mockHandler = new MockHttpMessageHandler(() =>
+        {
+            requestCount++;
+            if (requestCount == 1)
+            {
+                var response = new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("content")
+                };
+                response.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromSeconds(1) };
+                response.Headers.ETag = new EntityTagHeaderValue("\"123\"");
+                return response;
+            }
+
+            // 304 with updated freshness
+            var notModifiedResponse = new HttpResponseMessage(HttpStatusCode.NotModified);
+            notModifiedResponse.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromHours(1) };
+            notModifiedResponse.Headers.ETag = new EntityTagHeaderValue("\"123\"");
+            return notModifiedResponse;
+        });
+
+        var fixture = new HttpHybridCacheHandlerFixture(mockHandler);
+        var client = fixture.CreateClient();
+
+        // First request
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        // Advance past initial freshness
+        fixture.AdvanceTime(TimeSpan.FromSeconds(2));
+
+        // Second request - gets 304, updates metadata
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        // Advance time within new freshness window
+        fixture.AdvanceTime(TimeSpan.FromMinutes(30));
+
+        // Third request - should use cache with updated metadata
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        requestCount.ShouldBe(2); // Only 2 requests, third uses refreshed cache
+    }
+
+    [Fact]
+    public async Task Response_304_returns_cached_body()
+    {
+        var requestCount = 0;
+        var mockHandler = new MockHttpMessageHandler(() =>
+        {
+            requestCount++;
+            if (requestCount == 1)
+            {
+                var response = new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("original body")
+                };
+                response.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromSeconds(1) };
+                response.Headers.ETag = new EntityTagHeaderValue("\"abc\"");
+                return response;
+            }
+            else
+            {
+                // 304 has no body
+                var notModifiedResponse = new HttpResponseMessage(HttpStatusCode.NotModified);
+                notModifiedResponse.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromHours(1) };
+                notModifiedResponse.Headers.ETag = new EntityTagHeaderValue("\"abc\"");
+                return notModifiedResponse;
+            }
+        });
+
+        var fixture = new HttpHybridCacheHandlerFixture(mockHandler);
+        var client = fixture.CreateClient();
+
+        // First request
+        var response1 = await client.GetAsync("https://example.com/resource", _ct);
+        var body1 = await response1.Content.ReadAsStringAsync(_ct);
+
+        // Make stale
+        fixture.AdvanceTime(TimeSpan.FromSeconds(2));
+
+        // Second request - gets 304 but returns cached body
+        var response2 = await client.GetAsync("https://example.com/resource", _ct);
+        var body2 = await response2.Content.ReadAsStringAsync(_ct);
+
+        body1.ShouldBe("original body");
+        body2.ShouldBe("original body"); // Body from cache, not empty 304
+        response2.StatusCode.ShouldBe(HttpStatusCode.OK); // Presented as 200 to client
+    }
+
+    [Fact]
+    public async Task Strong_vs_weak_ETag_comparison()
+    {
+        var mockResponse = new HttpResponseMessage
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StringContent("content")
+        };
+        mockResponse.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromSeconds(1) };
+        mockResponse.Headers.ETag = new EntityTagHeaderValue("\"weak-tag\"", true); // Weak ETag
+        var mockHandler = new MockHttpMessageHandler(mockResponse);
+
+        var fixture = new HttpHybridCacheHandlerFixture(mockHandler);
+        var client = fixture.CreateClient();
+
+        // First request
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        // Make stale
+        fixture.AdvanceTime(TimeSpan.FromSeconds(2));
+
+        // Second request - should handle weak ETag validation
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        mockHandler.RequestCount.ShouldBe(2); // Validation attempted
+    }
+
+    [Fact]
+    public async Task Cached_response_triggers_If_Modified_Since()
+    {
+        var requestCount = 0;
+        HttpRequestMessage? lastRequest = null;
+        var fixture = new HttpHybridCacheHandlerFixture();
+        var lastModified = fixture.TimeProvider.GetUtcNow().AddDays(-1);
+        var mockHandler = new MockHttpMessageHandler(req =>
+        {
+            requestCount++;
+            if (requestCount == 1)
+            {
+                var response = new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("content")
+                    {
+                        Headers = { LastModified = lastModified }
+                    }
+                };
+                response.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromSeconds(1) };
+                return Task.FromResult(response);
+            }
+            else
+            {
+                lastRequest = req;
+                var notModifiedResponse = new HttpResponseMessage(HttpStatusCode.NotModified);
+                notModifiedResponse.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromHours(1) };
+                return Task.FromResult(notModifiedResponse);
+            }
+        });
+
+        fixture = new HttpHybridCacheHandlerFixture(mockHandler);
+        var client = fixture.CreateClient();
+
+        // First request
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        // Make stale
+        fixture.AdvanceTime(TimeSpan.FromSeconds(2));
+
+        // Second request - should trigger If-Modified-Since
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        requestCount.ShouldBe(2);
+        lastRequest.ShouldNotBeNull();
+        lastRequest.Headers.IfModifiedSince.ShouldBe(lastModified);
+    }
+
+    [Fact]
+    public async Task Response_304_updates_cache_entry_date()
+    {
+        var requestCount = 0;
+        var fixture = new HttpHybridCacheHandlerFixture();
+        var lastModified = fixture.TimeProvider.GetUtcNow().AddDays(-1);
+        var mockHandler = new MockHttpMessageHandler(() =>
+        {
+            requestCount++;
+            if (requestCount == 1)
+            {
+                var response = new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("content")
+                    {
+                        Headers = { LastModified = lastModified }
+                    }
+                };
+                response.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromSeconds(1) };
+                return response;
+            }
+            else
+            {
+                var notModifiedResponse = new HttpResponseMessage(HttpStatusCode.NotModified);
+                notModifiedResponse.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromHours(1) };
+                return notModifiedResponse;
+            }
+        });
+
+        fixture = new HttpHybridCacheHandlerFixture(mockHandler);
+        var client = fixture.CreateClient();
+
+        // First request
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        // Make stale
+        fixture.AdvanceTime(TimeSpan.FromSeconds(2));
+
+        // Validation request
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        // Should now be fresh for extended period
+        fixture.AdvanceTime(TimeSpan.FromMinutes(30));
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        requestCount.ShouldBe(2); // Third request uses refreshed cache
+    }
+
+    [Fact]
+    public async Task Last_Modified_fallback_when_no_ETag()
+    {
+        var fixture = new HttpHybridCacheHandlerFixture();
+        var lastModified = fixture.TimeProvider.GetUtcNow().AddDays(-1);
+        var mockResponse = new HttpResponseMessage
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StringContent("content")
+            {
+                Headers = { LastModified = lastModified }
+            }
+        };
+        mockResponse.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromSeconds(1) };
+        // No ETag - should use Last-Modified
+        var mockHandler = new MockHttpMessageHandler(mockResponse);
+
+        fixture = new HttpHybridCacheHandlerFixture(mockHandler);
+        var client = fixture.CreateClient();
+
+        // First request
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        // Make stale
+        fixture.AdvanceTime(TimeSpan.FromSeconds(2));
+
+        // Second request - should attempt validation with Last-Modified
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        mockHandler.RequestCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Response_200_replaces_cached_entry()
+    {
+        var requestCount = 0;
+        var mockHandler = new MockHttpMessageHandler(() =>
+        {
+            requestCount++;
+            if (requestCount == 1)
+            {
+                var response = new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("old content")
+                };
+                response.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromSeconds(1) };
+                response.Headers.ETag = new EntityTagHeaderValue("\"old\"");
+                return response;
+            }
+            else
+            {
+                // Resource changed - return 200 with new content
+                var response = new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("new content")
+                };
+                response.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromHours(1) };
+                response.Headers.ETag = new EntityTagHeaderValue("\"new\"");
+                return response;
+            }
+        });
+
+        var fixture = new HttpHybridCacheHandlerFixture(mockHandler);
+        var client = fixture.CreateClient();
+
+        // First request
+        var response1 = await client.GetAsync("https://example.com/resource", _ct);
+        var body1 = await response1.Content.ReadAsStringAsync(_ct);
+
+        // Make stale
+        fixture.AdvanceTime(TimeSpan.FromSeconds(2));
+
+        // Second request - resource changed, gets 200 with new content
+        var response2 = await client.GetAsync("https://example.com/resource", _ct);
+        var body2 = await response2.Content.ReadAsStringAsync(_ct);
+
+        body1.ShouldBe("old content");
+        body2.ShouldBe("new content");
+
+        // Third request - should use new cached content
+        var response3 = await client.GetAsync("https://example.com/resource", _ct);
+        var body3 = await response3.Content.ReadAsStringAsync(_ct);
+
+        body3.ShouldBe("new content");
+        requestCount.ShouldBe(2); // Third uses updated cache
+    }
+
+    [Fact]
+    public async Task Other_status_codes_handled_correctly()
+    {
+        var requestCount = 0;
+        var mockHandler = new MockHttpMessageHandler(() =>
+        {
+            requestCount++;
+            if (requestCount == 1)
+            {
+                var response = new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("content")
+                };
+                response.Headers.CacheControl = new CacheControlHeaderValue { MaxAge = TimeSpan.FromSeconds(1) };
+                response.Headers.ETag = new EntityTagHeaderValue("\"abc\"");
+                return response;
+            }
+            else
+            {
+                // Validation returns 404 - resource deleted
+                return new HttpResponseMessage(HttpStatusCode.NotFound)
+                {
+                    Content = new StringContent("Not Found")
+                };
+            }
+        });
+
+        var fixture = new HttpHybridCacheHandlerFixture(mockHandler);
+        var client = fixture.CreateClient();
+
+        // First request
+        await client.GetAsync("https://example.com/resource", _ct);
+
+        // Make stale
+        fixture.AdvanceTime(TimeSpan.FromSeconds(2));
+
+        // Second request - validation returns 404
+        var response = await client.GetAsync("https://example.com/resource", _ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        requestCount.ShouldBe(2);
+    }
+
+}

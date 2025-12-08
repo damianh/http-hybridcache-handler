@@ -1,0 +1,18 @@
+// Copyright (c) Damian Hickey. All rights reserved.
+// See LICENSE in the project root for license information.
+
+using System.Text.RegularExpressions;
+
+namespace DamianH.HttpHybridCacheHandler;
+
+/// <summary>
+/// Source-generated regexes for cache-control parsing.
+/// </summary>
+internal static partial class CacheControlRegexes
+{
+    [GeneratedRegex(@"stale-while-revalidate=(\d+)", RegexOptions.IgnoreCase)]
+    internal static partial Regex StaleWhileRevalidate();
+
+    [GeneratedRegex(@"stale-if-error=(\d+)", RegexOptions.IgnoreCase)]
+    internal static partial Regex StaleIfError();
+}

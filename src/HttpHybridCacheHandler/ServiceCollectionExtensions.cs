@@ -1,0 +1,77 @@
+// Copyright (c) Damian Hickey. All rights reserved.
+// See LICENSE in the project root for license information.
+
+using DamianH.HttpHybridCacheHandler;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
+#pragma warning disable IDE0130
+namespace Microsoft.Extensions.DependencyInjection;
+#pragma warning restore IDE0130
+
+/// <summary>
+///     Provides extension methods for configuring hybrid cache HTTP handlers in an IServiceCollection.
+/// </summary>
+/// <remarks>
+///     This class contains extension methods that simplify the registration of hybrid cache HTTP handlers
+///     and related services within a dependency injection container. These methods are intended to be used during
+///     application startup to configure caching behavior for HTTP requests.
+/// </remarks>
+public static class ServiceCollectionExtensions
+{
+    /// <summary>
+    ///     The service key used to register the keyed <see cref="HybridCache"/> instance
+    ///     dedicated to <see cref="HttpHybridCacheHandler"/>.
+    /// </summary>
+    public const string HybridCacheKey = "DamianH.HttpHybridCacheHandler";
+
+    extension(IServiceCollection serviceCollection)
+    {
+        /// <summary>
+        ///     Adds and configures a HttpHybridCacheHandler and its related services to the current IServiceCollection.
+        /// </summary>
+        /// <remarks>
+        ///     This method registers the HttpHybridCacheHandler as a transient service and
+        ///     configures its options. It also ensures that required dependencies, such as the TimeProvider,
+        ///     <see cref="IMemoryCache"/> (via <see cref="TimeProviderMemoryCache"/>), and a keyed
+        ///     <see cref="HybridCache"/> instance, are available in the service collection.
+        ///     Note: <see cref="TimeProviderMemoryCache"/> is registered as <see cref="IMemoryCache"/>
+        ///     which will be visible to the consumer's DI container.
+        /// </remarks>
+        /// <param name="configure">
+        ///     A delegate that configures the HttpHybridCacheHandlerOptions used to customize the behavior of the
+        ///     HttpHybridCacheHandler. Cannot be null.
+        /// </param>
+        /// <returns>
+        ///     The IServiceCollection instance with the HttpHybridCacheHandler and related services registered. This
+        ///     enables method chaining.
+        /// </returns>
+        public IServiceCollection AddHttpHybridCacheHandler(Action<HttpHybridCacheHandlerOptions> configure)
+        {
+            serviceCollection.AddOptions();
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+            serviceCollection.AddOptions<TimeProviderMemoryCacheOptions>();
+            serviceCollection.TryAddSingleton<TimeProviderMemoryCache>();
+            serviceCollection.TryAddSingleton<IMemoryCache>(sp => sp.GetRequiredService<TimeProviderMemoryCache>());
+            serviceCollection.AddKeyedHybridCache(HybridCacheKey, options =>
+            {
+                // Use a large default expiration so that HybridCache entries are not evicted
+                // before the handler's own RFC 9111 freshness logic (IsFresh) can evaluate them.
+                // Individual SetAsync calls pass per-entry options with accurate TTLs.
+                options.DefaultEntryOptions = new HybridCacheEntryOptions
+                {
+                    Expiration = TimeSpan.FromHours(24),
+                    LocalCacheExpiration = TimeSpan.FromHours(24)
+                };
+            });
+            serviceCollection.AddTransient<HttpHybridCacheHandler>();
+            serviceCollection.AddOptions<HttpHybridCacheHandlerOptions>()
+                .Configure(configure);
+            return serviceCollection;
+        }
+    }
+}
