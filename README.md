@@ -1,19 +1,23 @@
 # HttpHybridCache Handler
 
-[![NuGet](https://img.shields.io/nuget/v/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/)
 [![CI](https://github.com/damianh/http-hybridcache-handler/actions/workflows/ci.yml/badge.svg)](https://github.com/damianh/http-hybridcache-handler/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
 [![GitHub Stars](https://img.shields.io/github/stars/damianh/http-hybridcache-handler.svg)](https://github.com/damianh/http-hybridcache-handler/stargazers)
 
-A caching DelegatingHandler for HttpClient that provides client-side HTTP caching based on RFC 9111.
+This repository contains two companion NuGet packages:
+
+| Package | NuGet | Downloads |
+|---------|-------|-----------|
+| **DamianH.HttpHybridCacheHandler** — RFC 9111 client-side HTTP caching handler for `HttpClient` | [![NuGet](https://img.shields.io/nuget/v/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/) |
+| **DamianH.FileDistributedCache** — File-based `IDistributedCache` / `IBufferDistributedCache` for zero-infrastructure persistent caching | [![NuGet](https://img.shields.io/nuget/v/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) |
 
 > [!NOTE]  
-> Project is under development and is not yet production-ready.
+> Project is new and it getting dog-fooded. If you try it out feedback would be appreciated.
 
 ## Table of Contents
 
+### HttpHybridCacheHandler
 - [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
@@ -22,16 +26,26 @@ A caching DelegatingHandler for HttpClient that provides client-side HTTP cachin
   - [AutomaticDecompression Explained](#automaticdecompression-explained)
   - [Handler Ordering](#handler-ordering)
   - [Common Mistakes](#common-mistakes)
-- [Multiple HybridCache Instances](#multiple-hybridcache-instances)
 - [Configuration Options](#configuration-options)
 - [Cache Behavior](#cache-behavior)
 - [Performance & Memory](#performance--memory)
 - [Metrics](#metrics)
 - [Benchmarks](#benchmarks)
+
+### FileDistributedCache
+- [Overview](#filedistributedcache-overview)
+- [Installation](#filedistributedcache-installation)
+- [Quick Start](#filedistributedcache-quick-start)
+- [Configuration Options](#filedistributedcache-configuration-options)
+- [Using with HttpHybridCacheHandler](#using-with-httphybridcachehandler)
+
+### General
 - [Samples](#samples)
 - [Contributing](#contributing)
 
 ## Features
+
+> **Package:** `DamianH.HttpHybridCacheHandler` — A caching `DelegatingHandler` for `HttpClient` that provides client-side HTTP caching based on RFC 9111.
 
 ### Core Caching Capabilities
 - **RFC 9111 Compliant**: Full implementation of HTTP caching specification for client-side caching
@@ -233,217 +247,6 @@ new SocketsHttpHandler { /* ... */ }
 
 **Golden Rule:** `HttpHybridCacheHandler` should receive **decompressed, ready-to-use** content.
 
-## Multiple HybridCache Instances
-
-Applications may need different `HybridCache` instances for different purposes (HTTP caching, database caching, session data, etc.).
-
-**Solution:** Use Keyed Services to register multiple `HybridCache` instances with different configurations.
-
-### Basic Example
-
-```csharp
-// Register multiple caches with different configurations
-builder.Services.AddKeyedSingleton("http-cache", (sp, key) =>
-{
-    var options = new HybridCacheOptions
-    {
-        MaximumPayloadBytes = 10 * 1024 * 1024, // 10MB for HTTP responses
-        DefaultEntryOptions = new HybridCacheEntryOptions
-        {
-            Expiration = TimeSpan.FromMinutes(5)
-        }
-    };
-    return new HybridCache(options, sp);
-});
-
-builder.Services.AddKeyedSingleton("db-cache", (sp, key) =>
-{
-    var options = new HybridCacheOptions
-    {
-        MaximumPayloadBytes = 1024 * 1024, // 1MB for DB queries
-        DefaultEntryOptions = new HybridCacheEntryOptions
-        {
-            Expiration = TimeSpan.FromHours(1)
-        }
-    };
-    return new HybridCache(options, sp);
-});
-
-// Use keyed cache in HttpClient
-builder.Services
-    .AddHttpClient("ApiClient")
-    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-    {
-        AutomaticDecompression = DecompressionMethods.All
-    })
-    .AddHttpMessageHandler(sp => new HttpHybridCacheHandler(
-        sp.GetRequiredKeyedService<HybridCache>("http-cache"), // Keyed resolution
-        TimeProvider.System,
-        new HttpHybridCacheHandlerOptions
-        {
-            FallbackCacheDuration = TimeSpan.FromMinutes(5)
-        },
-        sp.GetRequiredService<ILogger<HttpHybridCacheHandler>>()
-    ));
-```
-
-### Real-World Scenarios
-
-#### Different Retention Policies
-
-```csharp
-// Fast-changing data - short cache
-builder.Services.AddKeyedSingleton<HybridCache>("stocks-cache", (sp, key) =>
-{
-    var options = new HybridCacheOptions
-    {
-        MaximumPayloadBytes = 5 * 1024 * 1024,
-        DefaultEntryOptions = new() { Expiration = TimeSpan.FromSeconds(30) }
-    };
-    return new HybridCache(options, sp);
-});
-
-// Slow-changing data - long cache
-builder.Services.AddKeyedSingleton<HybridCache>("products-cache", (sp, key) =>
-{
-    var options = new HybridCacheOptions
-    {
-        MaximumPayloadBytes = 10 * 1024 * 1024,
-        DefaultEntryOptions = new() { Expiration = TimeSpan.FromHours(1) }
-    };
-    return new HybridCache(options, sp);
-});
-
-// Different clients with different caches
-builder.Services
-    .AddHttpClient("StocksClient")
-    .AddHttpMessageHandler(sp => new HttpHybridCacheHandler(
-        sp.GetRequiredKeyedService<HybridCache>("stocks-cache"),
-        TimeProvider.System,
-        new HttpHybridCacheHandlerOptions { FallbackCacheDuration = TimeSpan.FromSeconds(30) },
-        sp.GetRequiredService<ILogger<HttpHybridCacheHandler>>()
-    ));
-
-builder.Services
-    .AddHttpClient("ProductsClient")
-    .AddHttpMessageHandler(sp => new HttpHybridCacheHandler(
-        sp.GetRequiredKeyedService<HybridCache>("products-cache"),
-        TimeProvider.System,
-        new HttpHybridCacheHandlerOptions { FallbackCacheDuration = TimeSpan.FromHours(1) },
-        sp.GetRequiredService<ILogger<HttpHybridCacheHandler>>()
-    ));
-```
-
-#### L1-Only vs L1+L2
-
-```csharp
-// HTTP caching - L1 only (memory), fast, single instance
-builder.Services.AddKeyedSingleton<HybridCache>("http-l1", (sp, key) =>
-{
-    var options = new HybridCacheOptions
-    {
-        DisableDistributedCache = true, // L1 only
-        MaximumPayloadBytes = 10 * 1024 * 1024
-    };
-    return new HybridCache(options, sp);
-});
-
-// Distributed caching - L1+L2, multi-instance
-builder.Services.AddKeyedSingleton<HybridCache>("http-l2", (sp, key) =>
-{
-    var options = new HybridCacheOptions
-    {
-        DisableDistributedCache = false, // L1 + L2
-        MaximumPayloadBytes = 10 * 1024 * 1024
-    };
-    return new HybridCache(options, sp);
-});
-```
-
-#### Per-Tenant Caching
-
-```csharp
-// Each tenant gets its own cache
-builder.Services.AddKeyedSingleton<HybridCache>("tenant-a-cache", (sp, key) =>
-{
-    var options = new HybridCacheOptions
-    {
-        MaximumPayloadBytes = 10 * 1024 * 1024,
-        DefaultEntryOptions = new() { Expiration = TimeSpan.FromMinutes(10) }
-    };
-    return new HybridCache(options, sp);
-});
-
-builder.Services.AddKeyedSingleton<HybridCache>("tenant-b-cache", (sp, key) =>
-{
-    var options = new HybridCacheOptions
-    {
-        MaximumPayloadBytes = 5 * 1024 * 1024,
-        DefaultEntryOptions = new() { Expiration = TimeSpan.FromMinutes(5) }
-    };
-    return new HybridCache(options, sp);
-});
-
-// Resolve based on tenant context
-builder.Services
-    .AddHttpClient("TenantAwareClient")
-    .AddHttpMessageHandler(sp =>
-    {
-        var tenantContext = sp.GetRequiredService<ITenantContext>();
-        var cacheKey = $"tenant-{tenantContext.TenantId}-cache";
-        var cache = sp.GetRequiredKeyedService<HybridCache>(cacheKey);
-
-        return new HttpHybridCacheHandler(
-            cache,
-            TimeProvider.System,
-            new HttpHybridCacheHandlerOptions(),
-            sp.GetRequiredService<ILogger<HttpHybridCacheHandler>>()
-        );
-    });
-```
-
-### Helper Extension Method
-
-Simplify usage with an extension method:
-
-```csharp
-public static class HybridCacheExtensions
-{
-    public static IHttpClientBuilder AddHttpCaching(
-        this IHttpClientBuilder builder,
-        string cacheKey = "http-cache",
-        Action<HttpHybridCacheHandlerOptions>? configure = null)
-    {
-        return builder.AddHttpMessageHandler(sp =>
-        {
-            var cache = sp.GetRequiredKeyedService<HybridCache>(cacheKey);
-            var options = new HttpHybridCacheHandlerOptions();
-            configure?.Invoke(options);
-
-            return new HttpHybridCacheHandler(
-                cache,
-                TimeProvider.System,
-                options,
-                sp.GetRequiredService<ILogger<HttpHybridCacheHandler>>()
-            );
-        });
-    }
-}
-
-// Usage
-builder.Services
-    .AddHttpClient("ApiClient")
-    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-    {
-        AutomaticDecompression = DecompressionMethods.All
-    })
-    .AddHttpCaching("api-cache", opts =>
-    {
-        opts.FallbackCacheDuration = TimeSpan.FromMinutes(5);
-        opts.MaxCacheableContentSize = 10 * 1024 * 1024;
-    });
-```
-
 ## Configuration Options
 
 ### Cache Mode
@@ -588,6 +391,123 @@ See the `/samples` directory for complete examples:
 - `HttpClientFactorySample`: Integration with IHttpClientFactory
 - `YarpCachingProxySample`: Building a caching reverse proxy with YARP
 - `FusionCacheSample`: Using FusionCache via its HybridCache adapter for enhanced caching features
+- `FileDistributedCacheSample`: File-based L2 cache with HttpHybridCacheHandler
+
+---
+
+## FileDistributedCache Overview
+
+A file-based `IDistributedCache` (and `IBufferDistributedCache`) implementation for .NET. Stores cache entries as individual files on the local filesystem — no external infrastructure required.
+
+### When to use FileDistributedCache vs Redis/SQL Server
+
+| Scenario | FileDistributedCache | Redis / SQL Server |
+|----------|---------------------|-------------------|
+| Desktop apps (WPF, WinForms, MAUI) | ✅ Ideal — local disk, no infrastructure | Overkill |
+| Mobile apps (MAUI, Xamarin) | ✅ Ideal — device-local storage | Not available |
+| CLI tools and background agents | ✅ Simple, self-contained | Overkill |
+| Single-instance services | ✅ Good — persistent L2 with no dependencies | Either works |
+| Microservices / SOA (multi-instance) | ❌ Not shared across instances | ✅ Use Redis / SQL Server |
+| Scaled-out web apps (load-balanced) | ❌ Each instance has its own cache | ✅ Use a shared cache |
+
+`FileDistributedCache` is the L2 backend for `HybridCache` when you need persistence across process restarts but don't have (or don't want) external cache infrastructure. For multi-instance services that need a shared cache, use Redis, SQL Server, or another distributed backend.
+
+**Key characteristics:**
+
+- **Zero infrastructure** — no Redis, SQL Server, or other external dependencies
+- **Persistent across restarts** — cache survives process recycling
+- **AOT compatible** — fully trimming/AOT safe
+- **IBufferDistributedCache support** — implements the buffer-based interface for efficient `HybridCache` L2 integration (avoids `byte[]` allocations)
+- **Background eviction** — configurable periodic cleanup of expired entries, with optional soft limits on entry count and total size
+- **Sliding expiration** — last-access timestamps are updated on read for sliding window support
+- **Concurrency safe** — file-level locking with retry logic for concurrent access on Windows
+
+### FileDistributedCache Installation
+
+```bash
+dotnet add package DamianH.FileDistributedCache
+```
+
+### FileDistributedCache Quick Start
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+
+var services = new ServiceCollection();
+
+services.AddFileDistributedCache(options =>
+{
+    options.CacheDirectory = Path.Combine(AppContext.BaseDirectory, "my-cache");
+    options.MaxEntries = 10_000;
+    options.MaxTotalSize = 500 * 1024 * 1024; // 500 MB
+    options.EvictionInterval = TimeSpan.FromMinutes(5);
+    options.DefaultAbsoluteExpiration = TimeSpan.FromHours(1);
+});
+
+var provider = services.BuildServiceProvider();
+var cache = provider.GetRequiredService<IDistributedCache>();
+
+// Set a value
+await cache.SetStringAsync("key", "value", new DistributedCacheEntryOptions
+{
+    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
+    SlidingExpiration = TimeSpan.FromMinutes(10)
+});
+
+// Get a value
+var value = await cache.GetStringAsync("key");
+```
+
+### FileDistributedCache Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `CacheDirectory` | `string` | `{TempPath}/DamianH.FileDistributedCache` | Directory where cache files are stored |
+| `MaxEntries` | `int?` | `null` (unlimited) | Soft limit on number of cache entries. Oldest by last access are evicted when exceeded |
+| `MaxTotalSize` | `long?` | `null` (unlimited) | Soft limit on total cached data size in bytes. Oldest by last access are evicted when exceeded |
+| `EvictionInterval` | `TimeSpan` | 5 minutes | How frequently the background eviction scan runs |
+| `DefaultSlidingExpiration` | `TimeSpan?` | `null` | Default sliding expiration applied when an entry is stored without one |
+| `DefaultAbsoluteExpiration` | `TimeSpan?` | `null` | Default absolute expiration (relative to now) applied when an entry has no explicit expiration |
+
+### Using with HttpHybridCacheHandler
+
+`FileDistributedCache` is designed as a drop-in L2 backend for .NET's `HybridCache`. When both packages are registered, `HybridCache` automatically discovers the `IDistributedCache` / `IBufferDistributedCache` service and uses it for L2 storage:
+
+```csharp
+var builder = Host.CreateApplicationBuilder(args);
+
+// Register file-based L2 cache — HybridCache picks it up automatically
+builder.Services.AddFileDistributedCache(options =>
+{
+    options.CacheDirectory = Path.Combine(AppContext.BaseDirectory, "http-cache");
+    options.DefaultAbsoluteExpiration = TimeSpan.FromHours(1);
+});
+
+// Register the HTTP caching handler
+builder.Services.AddHttpHybridCacheHandler(options =>
+{
+    options.FallbackCacheDuration = TimeSpan.FromMinutes(5);
+});
+
+// Wire up an HttpClient with caching
+builder.Services
+    .AddHttpClient("CachedClient")
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        AutomaticDecompression = DecompressionMethods.All,
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+    })
+    .AddHttpMessageHandler(sp => sp.GetRequiredService<HttpHybridCacheHandler>());
+
+var host = builder.Build();
+var client = host.Services.GetRequiredService<IHttpClientFactory>().CreateClient("CachedClient");
+
+// First request: fetched from network, stored in L1 (memory) + L2 (file)
+// Subsequent requests: served from L1 or L2 — even across process restarts
+var response = await client.GetAsync("https://api.example.com/data");
+```
+
+See `samples/FileDistributedCacheSample` for a complete working example.
 
 ## Performance & Memory
 

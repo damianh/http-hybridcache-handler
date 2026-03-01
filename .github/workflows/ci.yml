@@ -27,7 +27,9 @@ jobs:
       run: dotnet build --no-restore --configuration Release
     
     - name: Run tests
-      run: dotnet run --project test/Tests/Tests.csproj --no-build --configuration Release
+      run: |
+        dotnet run --project test/HttpHybridCacheHandler.Tests/HttpHybridCacheHandler.Tests.csproj --no-build --configuration Release
+        dotnet run --project test/FileDistributedCache.Tests/FileDistributedCache.Tests.csproj --no-build --configuration Release
     
     - name: Run benchmarks
       run: |
@@ -54,7 +56,9 @@ jobs:
         if-no-files-found: ignore
     
     - name: Build NuGet packages
-      run: dotnet pack src/HttpHybridCacheHandler/HttpHybridCacheHandler.csproj --no-build --configuration Release --output ./packages
+      run: |
+        dotnet pack src/HttpHybridCacheHandler/HttpHybridCacheHandler.csproj --no-build --configuration Release --output ./packages
+        dotnet pack src/FileDistributedCache/FileDistributedCache.csproj --no-build --configuration Release --output ./packages
     
     - name: Upload NuGet packages
       uses: actions/upload-artifact@v4

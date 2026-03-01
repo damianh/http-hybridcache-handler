@@ -3,6 +3,7 @@
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <OutputType>Exe</OutputType>
+    <AssemblyName>HttpHybridCacheHandler.Tests</AssemblyName>
     <RootNamespace>DamianH.HttpHybridCacheHandler</RootNamespace>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>

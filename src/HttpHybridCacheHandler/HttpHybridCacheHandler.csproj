@@ -38,7 +38,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Tests" />
+    <InternalsVisibleTo Include="HttpHybridCacheHandler.Tests" />
+    <InternalsVisibleTo Include="Tests" /> <!-- NCrunch may use cached assembly name -->
   </ItemGroup>
 
 </Project>
