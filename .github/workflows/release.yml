@@ -62,7 +62,9 @@ jobs:
       run: dotnet build --configuration Release --no-restore
 
     - name: Pack NuGet packages
-      run: dotnet pack src/HttpHybridCacheHandler/HttpHybridCacheHandler.csproj --configuration Release --no-build --output ./packages
+      run: |
+        dotnet pack src/HttpHybridCacheHandler/HttpHybridCacheHandler.csproj --configuration Release --no-build --output ./packages
+        dotnet pack src/FileDistributedCache/FileDistributedCache.csproj --configuration Release --no-build --output ./packages
     
     - name: Push to GitHub Packages
       run: |
@@ -81,11 +83,10 @@ jobs:
         path: ./packages/*.nupkg
     
     - name: Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ inputs.version }}
-        release_name: Release ${{ inputs.version }}
+        name: Release ${{ inputs.version }}
         draft: false
         prerelease: ${{ contains(inputs.version, '-') }}
+        generate_release_notes: true
