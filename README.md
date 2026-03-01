@@ -13,7 +13,7 @@ This repository contains two companion NuGet packages:
 | **DamianH.FileDistributedCache** — File-based `IDistributedCache` / `IBufferDistributedCache` for zero-infrastructure persistent caching | [![NuGet](https://img.shields.io/nuget/v/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) |
 
 > [!NOTE]  
-> Project is new and it getting dog-fooded. If you try it out feedback would be appreciated.
+> Project is new and is being dog-fooded. If you try it out feedback would be appreciated!
 
 ## Table of Contents
 
