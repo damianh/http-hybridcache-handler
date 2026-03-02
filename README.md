@@ -5,12 +5,14 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
 [![GitHub Stars](https://img.shields.io/github/stars/damianh/http-hybridcache-handler.svg)](https://github.com/damianh/http-hybridcache-handler/stargazers)
 
-This repository contains two companion NuGet packages:
+RFC 9111 compliant client-side HTTP caching for `HttpClient`, powered by .NET's `HybridCache` for efficient L1 (memory) and L2 (distributed) caching.
 
-| Package | NuGet | Downloads |
-|---------|-------|-----------|
-| **DamianH.HttpHybridCacheHandler** — RFC 9111 client-side HTTP caching handler for `HttpClient` | [![NuGet](https://img.shields.io/nuget/v/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/) |
-| **DamianH.FileDistributedCache** — File-based `IDistributedCache` / `IBufferDistributedCache` for zero-infrastructure persistent caching | [![NuGet](https://img.shields.io/nuget/v/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) |
+## Packages
+
+| Package | Description | NuGet | Downloads |
+|---------|-------------|-------|-----------|
+| **DamianH.HttpHybridCacheHandler** | RFC 9111 client-side HTTP caching handler for `HttpClient` | [![NuGet](https://img.shields.io/nuget/v/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/) |
+| **DamianH.FileDistributedCache** | File-based `IDistributedCache` / `IBufferDistributedCache` for zero-infrastructure persistent caching | [![NuGet](https://img.shields.io/nuget/v/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) |
 
 > [!NOTE]  
 > Project is new and is being dog-fooded. If you try it out feedback would be appreciated!
