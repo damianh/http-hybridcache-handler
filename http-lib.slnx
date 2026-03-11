@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/structured-field-values/">
+    <Project Path="structured-field-values/src/Http.StructuredFieldValues.csproj" />
+    <Project Path="structured-field-values/test/Http.StructuredFieldValues.Tests.csproj" />
+    <Project Path="structured-field-values/samples/HttpClientSample/HttpClientSample.csproj" />
+    <Project Path="structured-field-values/samples/AspNetCoreSample/AspNetCoreSample.csproj" />
+  </Folder>
+  <Folder Name="/signatures/">
+    <Project Path="signatures/src/Http.HttpSignatures.csproj" />
+    <Project Path="signatures/test/Http.HttpSignatures.Tests.csproj" />
+  </Folder>
+  <Folder Name="/hybrid-cache-handler/">
+    <Project Path="hybrid-cache-handler/src/HttpHybridCacheHandler.csproj" />
+    <Project Path="hybrid-cache-handler/test/HttpHybridCacheHandler.Tests.csproj" />
+    <Project Path="hybrid-cache-handler/samples/HttpClientFactorySample/HttpClientFactorySample.csproj" />
+    <Project Path="hybrid-cache-handler/samples/FusionCacheSample/FusionCacheSample.csproj" />
+    <Project Path="hybrid-cache-handler/samples/YarpCachingProxySample/YarpCachingProxySample.csproj" />
+    <Project Path="hybrid-cache-handler/benchmarks/Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/file-distributed-cache/">
+    <Project Path="file-distributed-cache/src/FileDistributedCache.csproj" />
+    <Project Path="file-distributed-cache/test/FileDistributedCache.Tests.csproj" />
+    <Project Path="file-distributed-cache/samples/FileDistributedCacheSample/FileDistributedCacheSample.csproj" />
+  </Folder>
+</Solution>

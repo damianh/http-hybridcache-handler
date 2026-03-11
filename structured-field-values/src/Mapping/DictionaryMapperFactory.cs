@@ -1,0 +1,167 @@
+// Copyright (c) Duende Software. All rights reserved.
+// See LICENSE in the project root for license information.
+
+namespace DamianH.Http.StructuredFieldValues.Mapping;
+
+/// <summary>
+/// Builds parse and serialize delegates from a <see cref="DictionaryBuilder{T}"/> configuration.
+/// </summary>
+internal static class DictionaryMapperFactory
+{
+    /// <summary>
+    /// Builds a parse delegate that converts a <see cref="StructuredFieldDictionary"/> into a <typeparamref name="T"/>.
+    /// </summary>
+    internal static Func<StructuredFieldDictionary, T> BuildParseDelegate<T>(DictionaryBuilder<T> builder)
+        where T : new()
+    {
+        var members = builder.Members;
+
+        return dict =>
+        {
+            var instance = new T();
+
+            foreach (var member in members)
+            {
+                if (!dict.TryGetValue(member.Key, out var dictMember))
+                {
+                    if (member.IsRequired)
+                        throw new StructuredFieldParseException(
+                            $"Missing required dictionary member '{member.Key}'.");
+                    continue; // optional member absent — leave property at default
+                }
+
+                if (member.IsInnerList)
+                {
+                    ParseInnerListMember(instance, member, dictMember);
+                }
+                else
+                {
+                    if (!dictMember.IsItem)
+                        throw new StructuredFieldParseException(
+                            $"Dictionary member '{member.Key}' must be an item, not an inner list.");
+
+                    var extracted = ItemTypeResolver.ExtractValue(
+                        member.Kind,
+                        dictMember.Item,
+                        member.ClrType,
+                        $"dictionary member '{member.Key}'");
+                    member.Setter(instance, extracted);
+                }
+            }
+
+            return instance;
+        };
+    }
+
+    /// <summary>
+    /// Builds a serialize delegate that converts a <typeparamref name="T"/> into a <see cref="StructuredFieldDictionary"/>.
+    /// </summary>
+    internal static Func<T, StructuredFieldDictionary> BuildSerializeDelegate<T>(DictionaryBuilder<T> builder)
+        where T : new()
+    {
+        var members = builder.Members;
+
+        return instance =>
+        {
+            var dict = new StructuredFieldDictionary();
+
+            foreach (var member in members)
+            {
+                var rawValue = member.Getter(instance);
+
+                if (member.IsInnerList)
+                {
+                    var innerListMember = SerializeInnerListMember(member, rawValue);
+                    if (innerListMember != null)
+                        dict.Add(member.Key, innerListMember);
+                }
+                else
+                {
+                    if (rawValue == null)
+                    {
+                        if (member.IsRequired)
+                            throw new InvalidOperationException(
+                                $"Dictionary member '{member.Key}' is required but the property is null.");
+                        continue; // skip optional null member
+                    }
+
+                    var item = ItemTypeResolver.ToItem(member.Kind, rawValue)!;
+                    dict.Add(member.Key, DictionaryMember.FromItem(item));
+                }
+            }
+
+            return dict;
+        };
+    }
+
+    private static void ParseInnerListMember<T>(T instance, MemberMapping<T> member, DictionaryMember dictMember)
+    {
+        if (!dictMember.IsInnerList)
+            throw new StructuredFieldParseException(
+                $"Dictionary member '{member.Key}' must be an inner list.");
+
+        var config = member.InnerList!;
+        var innerList = dictMember.InnerList;
+
+        if (config.IsNestedItem)
+        {
+            // Nested structured items: each element mapped by nested item mapper
+            var elements = innerList.Items
+                .Select(item => config.NestedItemParseDelegate!(item))
+                .ToList();
+
+            // Build a typed IReadOnlyList<TElement> by reflection
+            var typedList = CreateTypedReadOnlyList(config.ElementClrType, elements);
+            member.Setter(instance, typedList);
+        }
+        else
+        {
+            // Primitive or token elements
+            var elements = innerList.Items
+                .Select(item =>
+                    ItemTypeResolver.ExtractValue(config.ElementKind, item, config.ElementClrType,
+                        $"inner list element in '{member.Key}'"))
+                .ToList();
+
+            var typedList = CreateTypedReadOnlyList(config.ElementClrType, elements);
+            member.Setter(instance, typedList);
+        }
+    }
+
+    private static DictionaryMember? SerializeInnerListMember<T>(MemberMapping<T> member, object? rawValue)
+    {
+        if (rawValue == null)
+            return null; // optional inner list is absent
+
+        var config = member.InnerList!;
+        var collection = (System.Collections.IEnumerable)rawValue;
+        var innerList = new InnerList();
+
+        if (config.IsNestedItem)
+        {
+            foreach (var element in collection)
+                innerList.Add(config.NestedItemSerializeDelegate!(element));
+        }
+        else
+        {
+            foreach (var element in collection)
+            {
+                var item = ItemTypeResolver.ToItem(config.ElementKind, element);
+                if (item == null) continue;
+                innerList.Add(item);
+            }
+        }
+
+        return DictionaryMember.FromInnerList(innerList);
+    }
+
+    private static object CreateTypedReadOnlyList(Type elementType, System.Collections.IList elements)
+    {
+        // Build a List<T> and cast to IReadOnlyList<T>
+        var listType = typeof(List<>).MakeGenericType(elementType);
+        var list = (System.Collections.IList)Activator.CreateInstance(listType)!;
+        foreach (var e in elements)
+            list.Add(e);
+        return list;
+    }
+}

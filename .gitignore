@@ -418,3 +418,10 @@ FodyWeavers.xsd
 *.msp
 nul
 *.ncrunchsolution
+*.ncrunchproject
+
+# ReSharper/Rider solution settings
+*.DotSettings
+
+# Weave plan directory
+.weave/

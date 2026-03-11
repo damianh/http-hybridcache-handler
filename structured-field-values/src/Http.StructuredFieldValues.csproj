@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>DamianH.Http.StructuredFieldValues</AssemblyName>
+    <RootNamespace>DamianH.Http.StructuredFieldValues</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
+    <MinVerTagPrefix>sfv-v</MinVerTagPrefix>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>DamianH.Http.StructuredFieldValues</PackageId>
+    <Authors>Damian Hickey</Authors>
+    <Description>A parser and serializer for HTTP Structured Field Values (RFC 8941/9651), enabling strongly-typed access to structured headers, trailers, and parameters.</Description>
+    <PackageTags>http;structured-fields;rfc8941;rfc9651;structured-headers;parser;serializer</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/damianh/http-lib</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/damianh/http-lib</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DamianH.Http.StructuredFieldValues.AspNetCore" />
+    <InternalsVisibleTo Include="DamianH.Http.StructuredFieldValues.HttpClient" />
+    <InternalsVisibleTo Include="Http.StructuredFieldValues.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" Version="6.1.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
