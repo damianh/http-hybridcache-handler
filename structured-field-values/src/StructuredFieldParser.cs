@@ -553,12 +553,14 @@ public static class StructuredFieldParser
         if (parser.Current == '0')
         {
             parser.Advance();
-            return BooleanItem.False;
+            // Must not use BooleanItem.False singleton because parameters may be mutated after parsing.
+            return new BooleanItem(false);
         }
         else if (parser.Current == '1')
         {
             parser.Advance();
-            return BooleanItem.True;
+            // Must not use BooleanItem.True singleton because parameters may be mutated after parsing.
+            return new BooleanItem(true);
         }
         else
         {
