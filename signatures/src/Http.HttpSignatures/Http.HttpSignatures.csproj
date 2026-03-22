@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\structured-field-values\src\Http.StructuredFieldValues.csproj" />
+    <ProjectReference Include="..\..\..\structured-field-values\src\Http.StructuredFieldValues\Http.StructuredFieldValues.csproj" />
   </ItemGroup>
 
   <ItemGroup>

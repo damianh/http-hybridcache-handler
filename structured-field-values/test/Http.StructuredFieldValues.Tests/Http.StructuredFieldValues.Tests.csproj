@@ -1,10 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>DamianH.Http.HttpSignatures</RootNamespace>
+    <RootNamespace>DamianH.Http.StructuredFieldValues</RootNamespace>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Shouldly" Version="4.3.0" />
@@ -12,11 +16,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Http.HttpSignatures.csproj" />
+    <ProjectReference Include="..\..\src\Http.StructuredFieldValues\Http.StructuredFieldValues.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="RfcTests\*.json" CopyToOutputDirectory="PreserveNewest" LinkBase="RfcTests\" Condition="Exists('RfcTests')" />
   </ItemGroup>
 
   <ItemGroup>

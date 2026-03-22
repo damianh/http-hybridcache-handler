@@ -46,19 +46,19 @@ jobs:
         case "${{ inputs.package }}" in
           "DamianH.Http.StructuredFieldValues")
             echo "tag_prefix=sfv-v" >> $GITHUB_OUTPUT
-            echo "project_path=structured-field-values/src/Http.StructuredFieldValues.csproj" >> $GITHUB_OUTPUT
+            echo "project_path=structured-field-values/src/Http.StructuredFieldValues/Http.StructuredFieldValues.csproj" >> $GITHUB_OUTPUT
             ;;
           "DamianH.Http.HttpSignatures")
             echo "tag_prefix=sig-v" >> $GITHUB_OUTPUT
-            echo "project_path=signatures/src/Http.HttpSignatures.csproj" >> $GITHUB_OUTPUT
+            echo "project_path=signatures/src/Http.HttpSignatures/Http.HttpSignatures.csproj" >> $GITHUB_OUTPUT
             ;;
           "DamianH.HttpHybridCacheHandler")
             echo "tag_prefix=cache-v" >> $GITHUB_OUTPUT
-            echo "project_path=hybrid-cache-handler/src/HttpHybridCacheHandler.csproj" >> $GITHUB_OUTPUT
+            echo "project_path=hybrid-cache-handler/src/HttpHybridCacheHandler/HttpHybridCacheHandler.csproj" >> $GITHUB_OUTPUT
             ;;
           "DamianH.FileDistributedCache")
             echo "tag_prefix=fdc-v" >> $GITHUB_OUTPUT
-            echo "project_path=file-distributed-cache/src/FileDistributedCache.csproj" >> $GITHUB_OUTPUT
+            echo "project_path=file-distributed-cache/src/FileDistributedCache/FileDistributedCache.csproj" >> $GITHUB_OUTPUT
             ;;
         esac
 

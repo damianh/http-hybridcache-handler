@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Http.StructuredFieldValues.csproj" />
+    <ProjectReference Include="..\..\src\Http.StructuredFieldValues\Http.StructuredFieldValues.csproj" />
   </ItemGroup>
 
 </Project>

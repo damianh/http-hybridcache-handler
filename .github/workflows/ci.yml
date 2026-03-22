@@ -30,14 +30,14 @@ jobs:
 
     - name: Run tests
       run: |
-        dotnet run --project structured-field-values/test/Http.StructuredFieldValues.Tests.csproj --no-build --configuration Release
-        dotnet run --project signatures/test/Http.HttpSignatures.Tests.csproj --no-build --configuration Release
-        dotnet run --project hybrid-cache-handler/test/HttpHybridCacheHandler.Tests.csproj --no-build --configuration Release
-        dotnet run --project file-distributed-cache/test/FileDistributedCache.Tests.csproj --no-build --configuration Release
+        dotnet run --project structured-field-values/test/Http.StructuredFieldValues.Tests/Http.StructuredFieldValues.Tests.csproj --no-build --configuration Release
+        dotnet run --project signatures/test/Http.HttpSignatures.Tests/Http.HttpSignatures.Tests.csproj --no-build --configuration Release
+        dotnet run --project hybrid-cache-handler/test/HttpHybridCacheHandler.Tests/HttpHybridCacheHandler.Tests.csproj --no-build --configuration Release
+        dotnet run --project file-distributed-cache/test/FileDistributedCache.Tests/FileDistributedCache.Tests.csproj --no-build --configuration Release
 
     - name: Run benchmarks
       run: |
-        cd hybrid-cache-handler/benchmarks
+        cd hybrid-cache-handler/benchmarks/Benchmarks
         dotnet run --project Benchmarks.csproj --configuration Release --no-build -- --exporters json
       continue-on-error: true
 
@@ -45,7 +45,7 @@ jobs:
       if: always()
       run: |
         echo "## Benchmark Results" >> $GITHUB_STEP_SUMMARY
-        if [ -f "hybrid-cache-handler/benchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks-report.json" ]; then
+        if [ -f "hybrid-cache-handler/benchmarks/Benchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks-report.json" ]; then
           echo "Benchmark completed successfully. Full results available in artifacts." >> $GITHUB_STEP_SUMMARY
         else
           echo "Benchmark execution completed with warnings or errors." >> $GITHUB_STEP_SUMMARY
@@ -56,15 +56,15 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: benchmark-results
-        path: hybrid-cache-handler/benchmarks/BenchmarkDotNet.Artifacts/
+        path: hybrid-cache-handler/benchmarks/Benchmarks/BenchmarkDotNet.Artifacts/
         if-no-files-found: ignore
 
     - name: Build NuGet packages
       run: |
-        dotnet pack structured-field-values/src/Http.StructuredFieldValues.csproj --no-build --configuration Release --output ./packages
-        dotnet pack signatures/src/Http.HttpSignatures.csproj --no-build --configuration Release --output ./packages
-        dotnet pack hybrid-cache-handler/src/HttpHybridCacheHandler.csproj --no-build --configuration Release --output ./packages
-        dotnet pack file-distributed-cache/src/FileDistributedCache.csproj --no-build --configuration Release --output ./packages
+        dotnet pack structured-field-values/src/Http.StructuredFieldValues/Http.StructuredFieldValues.csproj --no-build --configuration Release --output ./packages
+        dotnet pack signatures/src/Http.HttpSignatures/Http.HttpSignatures.csproj --no-build --configuration Release --output ./packages
+        dotnet pack hybrid-cache-handler/src/HttpHybridCacheHandler/HttpHybridCacheHandler.csproj --no-build --configuration Release --output ./packages
+        dotnet pack file-distributed-cache/src/FileDistributedCache/FileDistributedCache.csproj --no-build --configuration Release --output ./packages
 
     - name: Upload NuGet packages
       uses: actions/upload-artifact@v4
