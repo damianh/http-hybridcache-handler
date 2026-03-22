@@ -14,22 +14,18 @@ A collection of .NET libraries for HTTP caching, structured field values, and me
 
 | Package | Description | NuGet | Downloads |
 |---------|-------------|-------|-----------|
-| [DamianH.HttpHybridCacheHandler](src/HttpHybridCacheHandler/README.md) | RFC 9111 client-side HTTP caching handler for `HttpClient` | [![NuGet](https://img.shields.io/nuget/v/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/) |
-| [DamianH.FileDistributedCache](src/FileDistributedCache/README.md) | File-based `IDistributedCache` / `IBufferDistributedCache` for zero-infrastructure persistent caching | [![NuGet](https://img.shields.io/nuget/v/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) |
-| [DamianH.Http.StructuredFieldValues](src/Http.StructuredFieldValues/README.md) | RFC 8941/9651 parser, serializer, and POCO mapper for HTTP Structured Field Values | | |
-| [DamianH.Http.HttpSignatures](src/Http.HttpSignatures/README.md) | RFC 9421 HTTP Message Signatures for signing and verifying HTTP messages | | |
+| [DamianH.HttpHybridCacheHandler](hybrid-cache-handler/README.md) | RFC 9111 client-side HTTP caching handler for `HttpClient` | [![NuGet](https://img.shields.io/nuget/v/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.HttpHybridCacheHandler.svg)](https://www.nuget.org/packages/DamianH.HttpHybridCacheHandler/) |
+| [DamianH.FileDistributedCache](file-distributed-cache/README.md) | File-based `IDistributedCache` / `IBufferDistributedCache` for zero-infrastructure persistent caching | [![NuGet](https://img.shields.io/nuget/v/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) | [![Downloads](https://img.shields.io/nuget/dt/DamianH.FileDistributedCache.svg)](https://www.nuget.org/packages/DamianH.FileDistributedCache/) |
+| [DamianH.Http.StructuredFieldValues](structured-field-values/README.md) | RFC 8941/9651 parser, serializer, and POCO mapper for HTTP Structured Field Values | | |
+| [DamianH.Http.HttpSignatures](signatures/README.md) | RFC 9421 HTTP Message Signatures for signing and verifying HTTP messages | | |
 
 ## Repository Structure
 
 ```
-src/
-  HttpHybridCacheHandler/     # RFC 9111 HTTP caching DelegatingHandler
-  FileDistributedCache/       # File-based IDistributedCache implementation
-  Http.StructuredFieldValues/ # RFC 8941/9651 structured field values
-  Http.HttpSignatures/        # RFC 9421 HTTP message signatures
-test/                         # Integration and unit tests
-samples/                      # Sample projects per library
-benchmarks/                   # Memory allocation benchmarks
+hybrid-cache-handler/         # RFC 9111 HTTP caching DelegatingHandler
+file-distributed-cache/       # File-based IDistributedCache implementation
+structured-field-values/      # RFC 8941/9651 structured field values
+signatures/                   # RFC 9421 HTTP message signatures
 ```
 
 ## Building
