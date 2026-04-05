@@ -1,25 +1,49 @@
 <Solution>
   <Folder Name="/structured-field-values/">
+  </Folder>
+  <Folder Name="/structured-field-values/src/">
     <Project Path="structured-field-values/src/Http.StructuredFieldValues/Http.StructuredFieldValues.csproj" />
+  </Folder>
+  <Folder Name="/structured-field-values/test/">
     <Project Path="structured-field-values/test/Http.StructuredFieldValues.Tests/Http.StructuredFieldValues.Tests.csproj" />
+  </Folder>
+  <Folder Name="/structured-field-values/samples/">
     <Project Path="structured-field-values/samples/HttpClientSample/HttpClientSample.csproj" />
     <Project Path="structured-field-values/samples/AspNetCoreSample/AspNetCoreSample.csproj" />
   </Folder>
   <Folder Name="/signatures/">
+  </Folder>
+  <Folder Name="/signatures/src/">
     <Project Path="signatures/src/Http.HttpSignatures/Http.HttpSignatures.csproj" />
+  </Folder>
+  <Folder Name="/signatures/test/">
     <Project Path="signatures/test/Http.HttpSignatures.Tests/Http.HttpSignatures.Tests.csproj" />
   </Folder>
   <Folder Name="/hybrid-cache-handler/">
+  </Folder>
+  <Folder Name="/hybrid-cache-handler/src/">
     <Project Path="hybrid-cache-handler/src/HttpHybridCacheHandler/HttpHybridCacheHandler.csproj" />
+  </Folder>
+  <Folder Name="/hybrid-cache-handler/test/">
     <Project Path="hybrid-cache-handler/test/HttpHybridCacheHandler.Tests/HttpHybridCacheHandler.Tests.csproj" />
+  </Folder>
+  <Folder Name="/hybrid-cache-handler/samples/">
     <Project Path="hybrid-cache-handler/samples/HttpClientFactorySample/HttpClientFactorySample.csproj" />
     <Project Path="hybrid-cache-handler/samples/FusionCacheSample/FusionCacheSample.csproj" />
     <Project Path="hybrid-cache-handler/samples/YarpCachingProxySample/YarpCachingProxySample.csproj" />
+  </Folder>
+  <Folder Name="/hybrid-cache-handler/benchmarks/">
     <Project Path="hybrid-cache-handler/benchmarks/Benchmarks/Benchmarks.csproj" />
   </Folder>
   <Folder Name="/file-distributed-cache/">
+  </Folder>
+  <Folder Name="/file-distributed-cache/src/">
     <Project Path="file-distributed-cache/src/FileDistributedCache/FileDistributedCache.csproj" />
+  </Folder>
+  <Folder Name="/file-distributed-cache/test/">
     <Project Path="file-distributed-cache/test/FileDistributedCache.Tests/FileDistributedCache.Tests.csproj" />
+  </Folder>
+  <Folder Name="/file-distributed-cache/samples/">
     <Project Path="file-distributed-cache/samples/FileDistributedCacheSample/FileDistributedCacheSample.csproj" />
   </Folder>
 </Solution>
