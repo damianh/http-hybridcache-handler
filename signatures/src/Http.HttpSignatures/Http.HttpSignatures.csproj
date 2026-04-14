@@ -32,10 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\structured-field-values\src\Http.StructuredFieldValues\Http.StructuredFieldValues.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <PackageReference Include="DamianH.Http.StructuredFieldValues" Version="0.1.0" />
     <PackageReference Include="MinVer" Version="6.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
